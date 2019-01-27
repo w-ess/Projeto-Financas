@@ -38,6 +38,15 @@ export class CategoryFormComponent implements OnInit {
     this.setPageTitle();
   }
 
+  submitForm() {
+    this.submittingform = true;
+
+    if(this.currentAction == 'new')
+      this.createCategory();
+    else
+      this.updateCategory();
+  }
+
   // PRIVATE METHODS
 
   private setCurrentAction() {
@@ -66,7 +75,7 @@ export class CategoryFormComponent implements OnInit {
           this.category = category;
           this.categoryForm.patchValue(category)
         },
-        (error) => alert('Ocorreu um erro no servidor')
+        (error) => alert('Ocorreu um erro no servidor!')
       )
     }
   }
@@ -78,6 +87,46 @@ export class CategoryFormComponent implements OnInit {
       const categoryName = this.category.name || ''
       this.pageTitle = 'Editando Categoria: ' + categoryName;
     }
+  }
+
+  private createCategory() {
+    const category = Object.assign(new Category(), this.categoryForm.value);
+
+    this.categoryService.create(category)
+      .subscribe(
+        category => this.actionsForSuccess(category),
+        error => this.actionsForError(error)
+      )
+  }
+
+  private updateCategory() {
+    const category = Object.assign(new Category(), this.categoryForm.value);
+
+    this.categoryService.update(category)
+      .subscribe(
+        category => this.actionsForSuccess(category),
+        error => this.actionsForError(error)
+      )
+  }
+
+  private actionsForSuccess(category: Category){
+    toastr.success('Solicitação processada com sucesso.');
+
+    // força o carregamento da pagina, redirecionando para outra pagina e depois voltando
+    this.router.navigateByUrl('categories', {skipLocationChange: true}).then(
+      () => this.router.navigate(['categories', category.id, 'edit'])
+    );
+  }
+
+  private actionsForError(error) {
+    toastr.error('Ocorreu um erro ao processar a solicitação!');
+
+    this.submittingform = false;
+
+    if(error.status == 422)
+      this.serverErrorMessages = JSON.parse(error._body).errors;
+    else
+      this.serverErrorMessages = ['Falha na comunicação com o servidor']
   }
 
 }
